@@ -1,0 +1,11 @@
+# Mac
+.DS_Store
+
+# IDE
+.idea*
+.vscode*
+
+# Terraform
+.terraform*
+*.tfstate*
+tfplan
