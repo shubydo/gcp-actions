@@ -6,6 +6,7 @@ variable "project_id" {
 variable "region" {
   type        = string
   description = "The region to deploy to"
+  default     = "us-central1"
 }
 
 variable "zone" {
@@ -17,5 +18,4 @@ variable "zone" {
 variable "state_bucket_name" {
   type        = string
   description = "The name of the bucket to set up for terraform remote state"
-  default     = "shubydo-deployment-bucket"
 }

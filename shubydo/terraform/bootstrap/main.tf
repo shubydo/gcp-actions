@@ -1,13 +1,13 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
+resource "google_storage_bucket" "terraform_state" {
+  name                        = var.state_bucket_name
+  location                    = "US"
+  force_destroy               = true
+  uniform_bucket_level_access = true
 
-
-# Create backend GCS bucket
-terraform {
-  backend "gcs" {
-    bucket = var.bucket
-    prefix = "terraform-state"
+  versioning {
+    enabled = true
   }
+
+  labels = local.default_labels
 }
+
