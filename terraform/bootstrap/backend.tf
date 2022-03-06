@@ -7,3 +7,11 @@
 #     prefix = "<REPLACE_ME>" # Prefix to store state for resources: Ex: "bootstrap" or "myfolder/bootstrap-stuff"
 #   }
 # }
+
+# terraform init -backend-config="bucket=<MY_BUCKET>" -backend-config="prefix=<MY_PREFIX>"
+# Ex: terraform init -backend-config="bucket=myproj-terraform-state" -backend-config="prefix=bootstrap"
+terraform {
+  backend "gcs" {
+    prefix = "bootstrap"
+  }
+}

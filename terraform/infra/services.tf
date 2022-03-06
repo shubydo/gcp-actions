@@ -9,7 +9,6 @@ locals {
 # Services to enable for the project
 resource "google_project_service" "project" {
   for_each = toset(local.services)
-  project  = "shubydo"
   service  = each.key
 
   timeouts {
