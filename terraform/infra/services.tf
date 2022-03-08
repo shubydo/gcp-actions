@@ -1,7 +1,7 @@
 locals {
   services = [
     "compute.googleapis.com",
-    # "workflows.googleapis.com",
+    "cloudfunctions.googleapis.com",
   ]
 }
 
