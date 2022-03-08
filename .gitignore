@@ -9,3 +9,7 @@
 .terraform*
 *.tfstate*
 tfplan
+
+
+# Function artifacts (zip files
+function_artifacts
