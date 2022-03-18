@@ -1,7 +1,3 @@
-locals {
-  common_prefix = "jack-${var.environment}"
-}
-
 variable "project_id" {
   type        = string
   description = "The project ID to deploy to"

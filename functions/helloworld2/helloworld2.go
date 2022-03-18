@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
+
+	// "internal/common"
 	"net/http"
 )
 
@@ -21,5 +23,6 @@ func HelloWorld(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Hello World2!")
 		return
 	}
+	common.PrintTime()
 	fmt.Fprint(w, html.EscapeString(d.Message))
 }

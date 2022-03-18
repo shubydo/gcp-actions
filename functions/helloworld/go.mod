@@ -1,3 +1,3 @@
-module github.com/shubydo/gcp/helloworld
+module helloworld
 
-go 1.16
+go 1.17
