@@ -1,0 +1,8 @@
+# This file defines the CI/CD process for this repo
+
+# If a developer opens a PR, the following steps will be run:
+# 1. Check if code is formatted
+# 2. Run tests
+# 3. Deploy ephemeral reousources tied to the PR (TODO: Update as naming convention evolvese.g. pr-117-<resource-name>)
+# 4. Tear dpwn ephemeral resources tied to the PR after a specifid tiem
+
