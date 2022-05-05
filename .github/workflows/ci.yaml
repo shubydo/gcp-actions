@@ -1,0 +1,12 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  job:
+    name: "Terraform"
+    steps:
+      - run: "echo hello; ls -alt"
