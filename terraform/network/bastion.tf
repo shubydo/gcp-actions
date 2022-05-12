@@ -15,41 +15,53 @@ data "google_iam_policy" "bastion_agents" {
     role = "roles/iam.serviceAccountUser"
 
     members = [
-      "shubydo777@gmail.com",
+      "user:shubydo777@gmail.com",
       # "serviceAccount:${google_service_account.bastion_agents.email}",
     ]
   }
-  binding {
-    role = "roles/cloudsql.editor"
 
-    members = [
-      "serviceAccount:${google_service_account.bastion_agents.email}",
-    ]
-  }
+  # binding {
+  #   role = "roles/iam.serviceAccountUser"
 
-  binding {
-    role = "roles/compute.admin"
-    members = [
-      "serviceAccount:${google_service_account.bastion_agents.email}"
-    ]
-  }
+  #   members = [
+  #     "user:shubydo777@gmail.com",
+  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #   ]
+  # }
+  #   binding {
+  #     role = "roles/cloudsql.editor"
+
+  #     members = [
+  #       "serviceAccount:${google_service_account.bastion_agents.email}",
+  #     ]
+  #   }
+
+  # binding {
+  #   role = "roles/storage.viewer"
+  #   members = [
+  #     "serviceAccount:${google_service_account.bastion_agents.email}"
+  #   ]
+  # }
 
 }
+
 
 resource "google_service_account_iam_policy" "bastion_agents" {
   service_account_id = google_service_account.bastion_agents.id
   policy_data        = data.google_iam_policy.bastion_agents.policy_data
+
 }
 
 resource "google_compute_instance" "bastion_agents" {
   name                      = "${local.common_prefix}-bastion-agent"
-  machine_type              = "e2-micro"
+  machine_type              = "f1-micro"
   allow_stopping_for_update = true
 
   boot_disk {
     initialize_params {
       image = "debian-cloud/debian-9"
-
+      # size  = 10
+      # type  = "pd-standard"
     }
   }
 
@@ -68,7 +80,7 @@ resource "google_compute_instance" "bastion_agents" {
   }
 
   metadata = {
-    "os-login" = "TRUE"
+    "enable-oslogin" : "TRUE"
     # "os-config" = "TRUE"
   }
 
@@ -94,5 +106,6 @@ resource "google_compute_instance" "bastion_agents" {
 
 output "bastion_agents" {
   description = "Current configuration of bastion agents"
-  value       = google_compute_instance.bastion_agent
+  value       = google_compute_instance.bastion_agents
+  sensitive   = true
 }

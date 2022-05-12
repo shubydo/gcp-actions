@@ -4,6 +4,14 @@ resource "google_compute_network" "vpc" {
   # delete_default_routes_on_create = false
 }
 
+
+# Allow SSH access to bastion agent
+# resource "google_compute_firewall" "allow_ssh" {
+#   name      = "allow-ssh-bastion-${local.common_prefix}"
+#   direction = "INGRESS"
+
+# }
+
 # Subnets for DB and build agents
 resource "google_compute_subnetwork" "cloudsql" {
   name          = "${local.common_prefix}-cloudsql-subnet-${var.environment}-${var.region}"
