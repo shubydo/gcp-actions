@@ -1,21 +1,26 @@
 resource "google_compute_network" "vpc" {
   name                    = "${local.common_prefix}-vpc"
   auto_create_subnetworks = false
+  # delete_default_routes_on_create = false
 }
 
-resource "google_compute_subnetwork" "build_agents" {
-  name          = "${local.common_prefix}-build-agents-subnet"
-  ip_cidr_range = "10.0.1.0/28"
-  network       = google_compute_network.vpc.self_link
+# Subnets for DB and build agents
+resource "google_compute_subnetwork" "cloudsql" {
+  name          = "${local.common_prefix}-cloudsql-subnet-${var.environment}-${var.region}"
+  ip_cidr_range = "10.0.1.0/24"
+  network       = google_compute_network.vpc.id
+
   log_config {
     aggregation_interval = "INTERVAL_5_SEC"
     flow_sampling        = 0.5
     metadata             = "INCLUDE_ALL_METADATA"
   }
 }
+
+
 resource "google_compute_router" "router" {
   name    = "${local.common_prefix}-router"
-  region  = google_compute_subnetwork.build_agents.region
+  region  = google_compute_subnetwork.cloudsql.region
   network = google_compute_network.vpc.id
 
   bgp {
@@ -34,25 +39,5 @@ resource "google_compute_router_nat" "nat" {
     enable = true
     filter = "ERRORS_ONLY"
   }
-}
 
-resource "google_compute_instance" "build_agents" {
-  name         = "${local.common_prefix}-build-agent"
-  machine_type = "e2-micro"
-
-  boot_disk {
-    initialize_params {
-      image = "debian-cloud/debian-9"
-    }
-  }
-  network_interface {
-    network    = google_compute_network.vpc.self_link
-    subnetwork = google_compute_subnetwork.build_agents.self_link
-    # access_config {
-
-    # }
-  }
-
-
-  labels = local.default_labels
 }
