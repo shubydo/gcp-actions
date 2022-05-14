@@ -5,25 +5,38 @@ resource "google_service_account" "bastion_agents" {
   description  = "Service account for bastion agents"
 }
 
-# Allow user to access bastion agent by impersonating their service account 
+data "google_service_account" "terraform" {
+  account_id = "terraform"
+}
+
+# Allow terraform sa + users to access bastion agent by impersonating their service account 
 data "google_iam_policy" "allow_access_to_bastion_agents" {
 
   binding {
     role = "roles/iam.serviceAccountUser"
 
     members = [
-      "user:shubydo777@gmail.com",
+      "serviceAccount:${data.google_service_account.terraform.email}",
       # "serviceAccount:${google_service_account.bastion_agents.email}",
     ]
   }
-  binding {
-    role = "roles/compute.networkUser"
 
-    members = [
-      "user:shubydo777@gmail.com",
-      # "serviceAccount:${google_service_account.bastion_agents.email}",
-    ]
-  }
+  # binding {
+  #   role = "roles/iam.serviceAccountUser"
+
+  #   members = [
+  #     "user:shubydo777@gmail.com",
+  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #   ]
+  # }
+  # binding {
+  #   role = "roles/compute.networkUser"
+
+  #   members = [
+  #     "user:shubydo777@gmail.com",
+  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #   ]
+  # }
   # binding {
   #   role = "roles/iam.osLogin"
 
@@ -72,16 +85,25 @@ locals {
     "roles/compute.osLogin",
     "roles/compute.osLoginAdmin",
     "roles/compute.instanceAdmin.v1",
-
   ]
 }
 
-resource "google_service_account_iam_member" "bastion_agent_permissions" {
-  for_each           = toset(local.bastion_agent_permissions)
-  service_account_id = google_service_account.bastion_agents.id
-  role               = each.key
-  member             = "serviceAccount:${google_service_account.bastion_agents.email}"
-}
+# resource "google_service_account_iam_binding" "bastion_agents" {
+#   service_account_id = google_service_account.bastion_agents.id
+#   role               = "roles/iam.serviceAccountUser"
+#   members            = [
+#     "serviceAccount:${google_service_account.bastion_agents.email}"
+#   ]
+
+# }
+
+
+# resource "google_service_account_iam_member" "bastion_agent_permissions" {
+#   for_each           = toset(local.bastion_agent_permissions)
+#   service_account_id = google_service_account.bastion_agents.id
+#   role               = each.key
+#   member             = "serviceAccount:${google_service_account.bastion_agents.email}"
+# }
 
 resource "google_compute_instance" "bastion_agents" {
   name                      = "${local.common_prefix}-bastion-agent"
@@ -110,10 +132,10 @@ resource "google_compute_instance" "bastion_agents" {
     # }
   }
 
-  # metadata = {
-  #   "enable-oslogin" : "TRUE"
-  #   # "os-config" = "TRUE"
-  # }
+  metadata = {
+    "enable-oslogin" : "TRUE"
+    # "os-config" = "TRUE"
+  }
 
   tags   = ["ssh-enabled"]
   labels = local.default_labels
