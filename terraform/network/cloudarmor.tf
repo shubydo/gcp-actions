@@ -1,12 +1,4 @@
 # Cloud Armor
-data "http" "ip" {
-  url = "https://ifconfig.me"
-}
-
-output "ip" {
-  value = data.http.ip.body
-}
-
 
 # Deny everything excecpt current IP
 resource "google_compute_security_policy" "deny_all_but_current_ip" {
@@ -21,7 +13,7 @@ resource "google_compute_security_policy" "deny_all_but_current_ip" {
       versioned_expr = "SRC_IPS_V1"
 
       config {
-        src_ip_ranges = [data.http.ip.body]
+        src_ip_ranges = [local.client_ip]
       }
     }
   }
@@ -39,6 +31,3 @@ resource "google_compute_security_policy" "deny_all_but_current_ip" {
   }
 
 }
-
-# External HTTP(S) Load Balancer
-

@@ -6,11 +6,48 @@ resource "google_compute_network" "vpc" {
 
 
 # Allow SSH access to bastion agent
-# resource "google_compute_firewall" "allow_ssh" {
-#   name      = "allow-ssh-bastion-${local.common_prefix}"
-#   direction = "INGRESS"
+resource "google_compute_firewall" "allow_ssh" {
+  name      = "allow-ssh-bastion-${local.common_prefix}"
+  network   = google_compute_network.vpc.name
+  direction = "INGRESS"
+  priority  = 1000
+  allow {
+    protocol = "tcp"
+    ports    = [22]
+  }
 
-# }
+  source_ranges = [local.client_ip]
+  target_tags   = ["ssh-enabled"]
+
+  # log_config {
+  #   # metadata = 
+  # }
+  # Try if you can't get this to work
+  # target_service_accounts = google_compute_instance.bastion_agents.service_accounts
+}
+
+resource "google_compute_firewall" "allow_traffic_from_iap" {
+  name      = "allow-ssh-traffic-from-iap-${local.common_prefix}"
+  network   = google_compute_network.vpc.name
+  direction = "INGRESS"
+  priority  = 777
+  allow {
+    protocol = "tcp"
+    ports    = [22]
+  }
+
+  source_ranges = ["35.235.240.0/20"]
+  # not specifying target_tags or SAs applies to all instances
+  target_tags = ["ssh-enabled"]
+
+  # log_config {
+  #   # metadata = 
+  # }
+  # Try if you can't get this to work
+  # target_service_accounts = google_compute_instance.bastion_agents.service_accounts
+}
+
+
 
 # Subnets for DB and build agents
 resource "google_compute_subnetwork" "cloudsql" {
