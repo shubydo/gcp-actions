@@ -23,7 +23,7 @@ resource "google_compute_firewall" "allow_ssh" {
   #   # metadata = 
   # }
   # Try if you can't get this to work
-  # target_service_accounts = google_compute_instance.bastion_agents.service_accounts
+  # target_service_accounts = google_compute_instance.bastion_agent.service_accounts
 }
 
 # resource "google_compute_firewall" "allow_traffic_from_iap" {
@@ -44,12 +44,12 @@ resource "google_compute_firewall" "allow_ssh" {
 #   #   # metadata = 
 #   # }
 #   # Try if you can't get this to work
-#   # target_service_accounts = google_compute_instance.bastion_agents.service_accounts
+#   # target_service_accounts = google_compute_instance.bastion_agent.service_accounts
 # }
 
 
 
-# Subnets for DB and build agents
+# Subnets for DB and build agent
 resource "google_compute_subnetwork" "cloudsql" {
   name          = "${local.common_prefix}-cloudsql-subnet-${var.environment}-${var.region}"
   ip_cidr_range = "10.0.1.0/24"

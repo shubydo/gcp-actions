@@ -1,24 +1,47 @@
-
-resource "google_service_account" "bastion_agents" {
-  account_id   = "${local.common_prefix}-bastion-agents"
-  display_name = "${local.common_prefix}-bastion-agents"
-  description  = "Service account for bastion agents"
-}
-
 data "google_service_account" "terraform" {
   account_id = "terraform"
 }
 
+# data "google_iam_policy" "terraform" {
+#   binding {
+#     role = "roles/iam.serviceAccountTokenCreator"
+#     members = [
+#       "serviceAccount:${data.google_service_account.terraform.email}",
+#     ]
+# }
+
+# resource "google_service_account_iam_policy" "terraform" {
+#   account = "${data.google_service_account.terraform.email}"
+#   policy_data = data.google_iam_policy.terraform.policy_data
+# }
+
+resource "google_service_account" "bastion_agent" {
+  account_id   = "${local.common_prefix}-bastion-agent"
+  display_name = "${local.common_prefix}-bastion-agent"
+  description  = "Service account for bastion agent"
+}
+
+
 # Allow terraform sa + users to access bastion agent by impersonating their service account 
-data "google_iam_policy" "allow_access_to_bastion_agents" {
+data "google_iam_policy" "allow_access_to_bastion_agent" {
 
   binding {
     role = "roles/iam.serviceAccountUser"
 
     members = [
       "serviceAccount:${data.google_service_account.terraform.email}",
-      # "serviceAccount:${google_service_account.bastion_agents.email}",
+      # "serviceAccount:${google_service_account.bastion_agent.email}",
     ]
+  }
+
+  binding {
+    role = "roles/iam.serviceAccountTokenCreator"
+
+    members = [
+      "serviceAccount:${data.google_service_account.terraform.email}",
+      # "serviceAccount:${google_service_account.bastion_agent.email}",
+    ]
+
   }
 
   # binding {
@@ -26,7 +49,7 @@ data "google_iam_policy" "allow_access_to_bastion_agents" {
 
   #   members = [
   #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
   #   ]
   # }
   # binding {
@@ -34,15 +57,15 @@ data "google_iam_policy" "allow_access_to_bastion_agents" {
 
   #   members = [
   #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
   #   ]
   # }
   # binding {
   #   role = "roles/iam.osLogin"
 
   #   members = [
-  #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #     # "user:shubydo777@gmail.com",
+  #     "serviceAccount:${google_service_account.bastion_agent.email}",
   #   ]
   # }
 
@@ -53,30 +76,34 @@ data "google_iam_policy" "allow_access_to_bastion_agents" {
 
   #   members = [
   #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agents.email}",
+  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
   #   ]
   # }
   #   binding {
   #     role = "roles/cloudsql.editor"
 
   #     members = [
-  #       "serviceAccount:${google_service_account.bastion_agents.email}",
+  #       "serviceAccount:${google_service_account.bastion_agent.email}",
   #     ]
   #   }
 
   # binding {
   #   role = "roles/storage.viewer"
   #   members = [
-  #     "serviceAccount:${google_service_account.bastion_agents.email}"
+  #     "serviceAccount:${google_service_account.bastion_agent.email}"
   #   ]
   # }
 
 }
 
+# resource "google_iam" "name" {
 
-resource "google_service_account_iam_policy" "allow_access_to_bastion_agents" {
-  service_account_id = google_service_account.bastion_agents.id
-  policy_data        = data.google_iam_policy.allow_access_to_bastion_agents.policy_data
+# }
+
+
+resource "google_service_account_iam_policy" "allow_access_to_bastion_agent" {
+  service_account_id = google_service_account.bastion_agent.id
+  policy_data        = data.google_iam_policy.allow_access_to_bastion_agent.policy_data
 }
 
 
@@ -88,24 +115,61 @@ locals {
   ]
 }
 
-# resource "google_service_account_iam_binding" "bastion_agents" {
-#   service_account_id = google_service_account.bastion_agents.id
-#   role               = "roles/iam.serviceAccountUser"
-#   members            = [
-#     "serviceAccount:${google_service_account.bastion_agents.email}"
-#   ]
+data "google_iam_policy" "bastion_agent_permissions" {
+  binding {
+    role = "roles/compute.osLogin"
+    members = [
+      "serviceAccount:${google_service_account.bastion_agent.email}",
+    ]
+  }
+  binding {
+    role = "roles/compute.osLoginAdmin"
+    members = [
+      "serviceAccount:${google_service_account.bastion_agent.email}",
+    ]
+  }
+  binding {
+    role = "roles/compute.instanceAdmin.v1"
+    members = [
+      "serviceAccount:${google_service_account.bastion_agent.email}",
+    ]
+  }
+}
 
-# }
+resource "google_compute_instance_iam_policy" "bastion_agent_permissions" {
+  instance_name = google_compute_instance.bastion_agent.name
+  zone          = google_compute_instance.bastion_agent.zone
+  policy_data   = data.google_iam_policy.bastion_agent_permissions.policy_data
+}
+
+
+resource "google_service_account_iam_binding" "bastion_agent" {
+  service_account_id = google_service_account.bastion_agent.id
+  role               = "roles/iam.serviceAccountUser"
+  members = [
+    "serviceAccount:${google_service_account.bastion_agent.email}"
+  ]
+}
 
 
 # resource "google_service_account_iam_member" "bastion_agent_permissions" {
 #   for_each           = toset(local.bastion_agent_permissions)
-#   service_account_id = google_service_account.bastion_agents.id
+#   service_account_id = google_service_account.bastion_agent.id
 #   role               = each.key
-#   member             = "serviceAccount:${google_service_account.bastion_agents.email}"
+#   member             = "serviceAccount:${google_service_account.bastion_agent.email}"
 # }
 
-resource "google_compute_instance" "bastion_agents" {
+
+
+# resource "google_service_account_iam_binding" "name" {
+#   service_account_id = google_service_account.bastion_agent.id
+#   role               = "roles/compute.osLogin"
+#   members = [
+#     "serviceAccount:${google_service_account.bastion_agent.email}"
+#   ]
+# }
+
+resource "google_compute_instance" "bastion_agent" {
   name                      = "${local.common_prefix}-bastion-agent"
   machine_type              = "f1-micro"
   allow_stopping_for_update = true
@@ -120,7 +184,7 @@ resource "google_compute_instance" "bastion_agents" {
 
   service_account {
     # email  = "terraform@shubydo.iam.gserviceaccount.com"
-    email  = google_service_account.bastion_agents.email
+    email  = google_service_account.bastion_agent.email
     scopes = ["cloud-platform"]
   }
 
@@ -141,8 +205,8 @@ resource "google_compute_instance" "bastion_agents" {
   labels = local.default_labels
 }
 
-output "bastion_agents" {
-  description = "Current configuration of bastion agents"
-  value       = google_compute_instance.bastion_agents
+output "bastion_agent" {
+  description = "Current configuration of bastion agent"
+  value       = google_compute_instance.bastion_agent
   sensitive   = true
 }
