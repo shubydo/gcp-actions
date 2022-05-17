@@ -2,6 +2,7 @@ locals {
   # Project wide services to enable.
   project_services = [
     "compute.googleapis.com",
+    "iap.googleapis.com",
   ]
 }
 
@@ -24,4 +25,9 @@ resource "google_storage_bucket" "terraform_state" {
 
   labels = local.default_labels
 }
+
+# resource "google_project_iam_member" "jack" {
+
+
+# }
 
