@@ -6,8 +6,8 @@ resource "google_compute_network" "vpc" {
 
 
 # Allow SSH access to bastion agent
-resource "google_compute_firewall" "allow_ssh" {
-  name      = "allow-ssh-bastion-${local.common_prefix}"
+resource "google_compute_firewall" "allow_ssh_from_local_ip" {
+  name      = "allow-ssh-bastion-from-local-ip-${local.common_prefix}"
   network   = google_compute_network.vpc.name
   direction = "INGRESS"
   priority  = 1000
@@ -19,12 +19,36 @@ resource "google_compute_firewall" "allow_ssh" {
   source_ranges = [local.client_ip]
   target_tags   = ["ssh-enabled"]
 
-  # log_config {
-  #   # metadata = 
-  # }
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+
   # Try if you can't get this to work
   # target_service_accounts = google_compute_instance.bastion_agent.service_accounts
 }
+
+# Allow SSH access from IAP to bastion agent
+resource "google_compute_firewall" "allow_ssh_from_iap" {
+  name      = "allow-ssh-bastion-from-iap-${local.common_prefix}"
+  network   = google_compute_network.vpc.name
+  direction = "INGRESS"
+  priority  = 1000
+  allow {
+    protocol = "tcp"
+    ports    = [22]
+  }
+
+  source_ranges = ["35.235.240.0/20"]
+  target_tags   = ["ssh-enabled"]
+
+  log_config {
+    metadata = "INCLUDE_ALL_METADATA"
+  }
+
+  # Try if you can't get this to work
+  # target_service_accounts = google_compute_instance.bastion_agent.service_accounts
+}
+
 
 # resource "google_compute_firewall" "allow_traffic_from_iap" {
 #   name      = "allow-ssh-traffic-from-iap-${local.common_prefix}"

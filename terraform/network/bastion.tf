@@ -1,117 +1,20 @@
-data "google_service_account" "terraform" {
-  account_id = "terraform"
-}
-
-# data "google_iam_policy" "terraform" {
-#   binding {
-#     role = "roles/iam.serviceAccountTokenCreator"
-#     members = [
-#       "serviceAccount:${data.google_service_account.terraform.email}",
-#     ]
-# }
-
-# resource "google_service_account_iam_policy" "terraform" {
-#   account = "${data.google_service_account.terraform.email}"
-#   policy_data = data.google_iam_policy.terraform.policy_data
-# }
-
+# Create service account that bastion Compute Engine instance(s)
 resource "google_service_account" "bastion_agent" {
   account_id   = "${local.common_prefix}-bastion-agent"
   display_name = "${local.common_prefix}-bastion-agent"
   description  = "Service account for bastion agent"
 }
 
-
-# Allow terraform sa + users to access bastion agent by impersonating their service account 
-data "google_iam_policy" "allow_access_to_bastion_agent" {
-
-  binding {
-    role = "roles/iam.serviceAccountUser"
-
-    members = [
-      "serviceAccount:${data.google_service_account.terraform.email}",
-      # "serviceAccount:${google_service_account.bastion_agent.email}",
-    ]
-  }
-
-  binding {
-    role = "roles/iam.serviceAccountTokenCreator"
-
-    members = [
-      "serviceAccount:${data.google_service_account.terraform.email}",
-      # "serviceAccount:${google_service_account.bastion_agent.email}",
-    ]
-
-  }
-
-  # binding {
-  #   role = "roles/iam.serviceAccountUser"
-
-  #   members = [
-  #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
-  #   ]
-  # }
-  # binding {
-  #   role = "roles/compute.networkUser"
-
-  #   members = [
-  #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
-  #   ]
-  # }
-  # binding {
-  #   role = "roles/iam.osLogin"
-
-  #   members = [
-  #     # "user:shubydo777@gmail.com",
-  #     "serviceAccount:${google_service_account.bastion_agent.email}",
-  #   ]
-  # }
-
-
-
-  # binding {
-  #   role = "roles/iam.serviceAccountUser"
-
-  #   members = [
-  #     "user:shubydo777@gmail.com",
-  #     # "serviceAccount:${google_service_account.bastion_agent.email}",
-  #   ]
-  # }
-  #   binding {
-  #     role = "roles/cloudsql.editor"
-
-  #     members = [
-  #       "serviceAccount:${google_service_account.bastion_agent.email}",
-  #     ]
-  #   }
-
-  # binding {
-  #   role = "roles/storage.viewer"
-  #   members = [
-  #     "serviceAccount:${google_service_account.bastion_agent.email}"
-  #   ]
-  # }
-
-}
-
-# resource "google_iam" "name" {
-
-# }
-
-
-resource "google_service_account_iam_policy" "allow_access_to_bastion_agent" {
-  service_account_id = google_service_account.bastion_agent.id
-  policy_data        = data.google_iam_policy.allow_access_to_bastion_agent.policy_data
-}
-
+# Allow bastion agent(s) to access DB and control login permissions of users
+# IAP tunneling: is used to authenticate and finely grain users access and permissions to the bastion agent(s)
+# Link: https://cloud.google.com/iap/docs/authentication-howto
 
 locals {
   bastion_agent_permissions = [
     "roles/compute.osLogin",
     "roles/compute.osLoginAdmin",
     "roles/compute.instanceAdmin.v1",
+    "roles/iap.tunnelInstances.accessViaIAP"
   ]
 }
 
@@ -122,12 +25,12 @@ data "google_iam_policy" "bastion_agent_permissions" {
       "serviceAccount:${google_service_account.bastion_agent.email}",
     ]
   }
-  binding {
-    role = "roles/compute.osLoginAdmin"
-    members = [
-      "serviceAccount:${google_service_account.bastion_agent.email}",
-    ]
-  }
+  # binding {
+  #   role = "roles/compute.osAdminLogin"
+  #   members = [
+  #     "serviceAccount:${google_service_account.bastion_agent.email}",
+  #   ]
+  # }
   binding {
     role = "roles/compute.instanceAdmin.v1"
     members = [
@@ -143,30 +46,36 @@ resource "google_compute_instance_iam_policy" "bastion_agent_permissions" {
 }
 
 
-resource "google_service_account_iam_binding" "bastion_agent" {
+# Allow users to assume service account
+data "google_service_account" "terraform" {
+  account_id = "terraform"
+}
+
+locals {
+  bastion_agent_impersonation_permissions = [
+    "roles/iam.serviceAccountTokenCreator",
+    "roles/iam.serviceAccountUser",
+    "roles/iam.serviceAccountAdmin",
+    "roles/iam.securityAdmin",
+    "roles/compute.admin"
+  ]
+}
+resource "google_service_account_iam_binding" "bastion_agent_user" {
+  for_each           = toset(local.bastion_agent_impersonation_permissions)
   service_account_id = google_service_account.bastion_agent.id
-  role               = "roles/iam.serviceAccountUser"
+  role               = each.key
   members = [
-    "serviceAccount:${google_service_account.bastion_agent.email}"
+    "serviceAccount:${data.google_service_account.terraform.email}",
   ]
 }
 
-
-# resource "google_service_account_iam_member" "bastion_agent_permissions" {
-#   for_each           = toset(local.bastion_agent_permissions)
-#   service_account_id = google_service_account.bastion_agent.id
-#   role               = each.key
-#   member             = "serviceAccount:${google_service_account.bastion_agent.email}"
-# }
-
-
-
-# resource "google_service_account_iam_binding" "name" {
-#   service_account_id = google_service_account.bastion_agent.id
-#   role               = "roles/compute.osLogin"
-#   members = [
-#     "serviceAccount:${google_service_account.bastion_agent.email}"
-#   ]
+# resource "google_iap_tunnel_instance_iam_member" "instance" {
+#   provider   = "google-beta"
+#   instance   = google_compute_instance.bastion_agent.name
+#   zone       = var.zone
+#   role       = "roles/iap.tunnelResourceAccessor"
+#   member     = "user:ericstumbo@student.purdueglobal.edu"
+#   depends_on = [google_compute_instance.default]
 # }
 
 resource "google_compute_instance" "bastion_agent" {

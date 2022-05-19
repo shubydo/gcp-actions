@@ -12,11 +12,11 @@ variable "region" {
 variable "zone" {
   type        = string
   description = "The zone to deploy to"
-  default     = "us-central1-a"
+  default     = "us-central1-b"
 }
 
 variable "environment" {
   type        = string
   description = "Name of the environment to deploy to"
-  default     = "test"
+  default     = "dev"
 }

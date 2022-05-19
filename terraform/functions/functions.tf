@@ -82,7 +82,8 @@ resource "google_cloudfunctions_function_iam_member" "invoker" {
 resource "google_service_account" "function" {
   for_each     = local.functions
   account_id   = each.value.name
-  description  = "Controls the workflow for the cloud pipeline"
+  description  = "Service account for ${each.value.name} function"
   display_name = each.value.name
   project      = var.project_id
+  # labels       = local.default_labels
 }
