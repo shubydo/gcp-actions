@@ -17,10 +17,6 @@ resource "google_compute_router" "router" {
   name    = "${local.common_prefix}-router"
   region  = google_compute_subnetwork.build_agents.region
   network = google_compute_network.vpc.id
-
-  bgp {
-    asn = 64514
-  }
 }
 
 resource "google_compute_router_nat" "nat" {

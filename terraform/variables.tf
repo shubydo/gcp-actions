@@ -9,7 +9,14 @@ variable "region" {
   default     = "us-central1"
 }
 
-variable "bucket" {
+variable "zone" {
   type        = string
-  description = "The name of the bucket to set up for terraform remote state"
+  description = "The zone to deploy to"
+  default     = "us-central1-a"
+}
+
+variable "environment" {
+  type        = string
+  description = "Name of the environment to deploy to"
+  default     = "dev"
 }
