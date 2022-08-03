@@ -17,7 +17,7 @@ jobs:
     defaults:
       run:
         shell: bash
-
+    environment: ${{ env.TARGET_ENVIRONMENT }}
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout
@@ -38,10 +38,10 @@ jobs:
 
       - name: Terraform Init
         id: init
-        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-        run: terraform init -backend-config="bucket=shubydo-{{ env.TARGET_ENVIRONMENT }}-terraform-state"
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: terraform init -backend-config="bucket=shubydo-{{ env.TARGET_ENVIRONMENT }}-terraform-state"
+        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
       - name: Terraform Validate
         id: validate
@@ -52,11 +52,11 @@ jobs:
       # Run plan and output to file then post/update comment with pipeline results
       - name: Terraform Plan
         id: plan
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
         run: terraform plan -var "project_id=shubydo-{{ env.TARGET_ENVIRONMENT }}" -out=tfplan
         continue-on-error: true
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
       - name: Post comment with pipeline results
         uses: actions/github-script@v6
