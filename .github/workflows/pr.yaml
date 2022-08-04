@@ -10,14 +10,16 @@ env:
   TERRAFORM_DIRECTORY: terraform
   TARGET_ENVIRONMENT: dev
 
+defaults:
+  run:
+    shell: bash
+# environment: ${{ env.TARGET_ENVIRONMENT }}
 jobs:
   terraform:
     name: "Terraform Plan"
+    # needs: setup
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-    environment: ${{ env.TARGET_ENVIRONMENT }}
+    environment: dev
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout
@@ -25,22 +27,28 @@ jobs:
 
       # Install Terraform
       - name: Setup Terraform
+        id: setup_terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
+      - name: "Authenticate to Google Cloud"
+        id: "auth"
+        uses: "google-github-actions/auth@v0"
+        with:
+          credentials_json: "${{ secrets.GOOGLE_CREDENTIALS }}"
+          export_environment_variables: true
+
       # Check that files are formatted and valid
       - name: Terraform Format
         id: fmt
-        working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+        working-directory: "${{ env.TERRAFORM_DIRECTORY }}"
         run: terraform fmt -check -recursive
         continue-on-error: true
 
       - name: Terraform Init
         id: init
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: terraform init -backend-config="bucket=shubydo-{{ env.TARGET_ENVIRONMENT }}-terraform-state"
+        run: terraform init -backend-config="bucket=shubydo-${{ env.TARGET_ENVIRONMENT }}-terraform-state"
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
 
       - name: Terraform Validate
@@ -52,17 +60,18 @@ jobs:
       # Run plan and output to file then post/update comment with pipeline results
       - name: Terraform Plan
         id: plan
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         working-directory: ${{ env.TERRAFORM_DIRECTORY }}
-        run: terraform plan -var "project_id=shubydo-{{ env.TARGET_ENVIRONMENT }}" -out=tfplan
+        run: |
+          terraform plan -var "project_id=shubydo-${{ env.TARGET_ENVIRONMENT }}" -out=tfplan
+          # Make tfplan a step output so it can be used in the next step
+          echo "::set-output name=tfplanout::$(terraform show tfplan)"
         continue-on-error: true
 
       - name: Post comment with pipeline results
         uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
         env:
-          PLAN: "terraform\n${{ steps.plan.outputs.tfplan }}"
+          PLAN: "${{ steps.plan.outputs.tfplanout }}"
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -81,26 +90,31 @@ jobs:
             #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
             #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
             <details>
-              <summary>Validation Output</summary>
-              \`\`\`hcl\n
-              ${{ steps.validate.outputs.stdout }}
-              \`\`\`
-            </details>
-
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-
-            <details><summary>Show Plan</summary>
+            <summary>Validation Output</summary>
 
             \`\`\`hcl\n
-            ${process.env.PLAN}
+            ${{ steps.validate.outputs.stdout }}
             \`\`\`
 
             </details>
 
-            <details><summary>Show Plan</summary>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            <details>
+            <summary>Show Plan</summary>
 
             \`\`\`hcl\n
-              ${{steps.plan.outputs.tfplan}}
+            ${{ env.PLAN }}
+            \`\`\`
+
+            </details>
+
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            <details>
+            <summary>Show Plan</summary>
+
+            \`\`\`hcl\n
+            ${{ steps.plan.outputs.tfplanout }}
             \`\`\`
 
             </details>
