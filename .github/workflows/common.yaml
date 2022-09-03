@@ -1,0 +1,51 @@
+name: Install Dependencies
+
+# GitHub Actions template
+# Path: .github/workflows/common.yaml
+
+on:
+  workflow_call:
+    inputs:
+      go_version:
+        description: "Go version"
+        required: true
+        type: string
+        default: 1.18
+      terraform_version:
+        description: "Terraform version"
+        required: true
+        type: string
+        default: 1.2.4
+    # secrets:
+    #   google-credentials:
+    #     description: "Google credentials"
+    #     required: true
+
+env:
+  GO_VERSION: 1.18
+  TERRAFORM_VERSION: 1.2.4
+  TERRAFORM_DIRECTORY: terraform
+  TARGET_ENVIRONMENT: dev
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  install_dependencies:
+    name: "Install Dependencies"
+    runs-on: ubuntu-latest
+
+    # Setup Golang and Terraform
+    steps:
+      - name: Setup Go
+        id: setup_go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ inputs.go_version }}
+
+      - name: Setup Terraform
+        id: setup_terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
