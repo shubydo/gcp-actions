@@ -8,7 +8,7 @@
 # Terraform
 .terraform*
 *.tfstate*
-tfplan
+*tfplan*
 
 
 # Function artifacts (zip files

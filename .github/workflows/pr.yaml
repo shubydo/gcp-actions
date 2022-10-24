@@ -1,0 +1,127 @@
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: 1.18
+  TERRAFORM_VERSION: 1.2.4
+  TERRAFORM_DIRECTORY: terraform
+  TARGET_ENVIRONMENT: dev
+
+defaults:
+  run:
+    shell: bash
+# environment: ${{ env.TARGET_ENVIRONMENT }}
+jobs:
+  # Call the common workflow
+  install_dependencies:
+    name: "Install Dependencies"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Dependencies
+        id: install_dependencies
+        uses: ./common.yaml
+        with:
+          go_version: ${{ env.GO_VERSION }}
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+  # terraform:
+  #   name: "Terraform Plan"
+  #   # needs: setup
+  #   runs-on: ubuntu-latest
+
+  #   environment: dev
+  #   steps:
+  #     # Checkout the repository to the GitHub Actions runner
+  #     - name: Checkout
+  #       uses: actions/checkout@v2
+
+  #     # Check that files are formatted and valid
+  #     - name: Terraform Format
+  #       id: fmt
+  #       working-directory: "${{ env.TERRAFORM_DIRECTORY }}"
+  #       run: terraform fmt -check -recursive
+  #       continue-on-error: true
+
+  #     - name: Terraform Init
+  #       id: init
+  #       run: terraform init -backend-config="bucket=shubydo-${{ env.TARGET_ENVIRONMENT }}-terraform-state"
+  #       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+
+  #     - name: Terraform Validate
+  #       id: validate
+  #       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+  #       run: terraform validate
+  #       continue-on-error: true
+
+  #     # Run plan and output to file then post/update comment with pipeline results
+  #     - name: Terraform Plan
+  #       id: plan
+  #       working-directory: ${{ env.TERRAFORM_DIRECTORY }}
+  #       run: |
+  #         terraform plan -var "project_id=shubydo-${{ env.TARGET_ENVIRONMENT }}" -out=tfplan
+  #         # Make tfplan a step output so it can be used in the next step
+  #         echo "::set-output name=tfplanout::$(terraform show tfplan)"
+  #       continue-on-error: true
+
+  #     - name: Post comment with pipeline results
+  #       uses: actions/github-script@v6
+  #       if: github.event_name == 'pull_request'
+  #       env:
+  #         PLAN: "${{ steps.plan.outputs.tfplanout }}"
+  #       with:
+  #         github-token: ${{ secrets.GITHUB_TOKEN }}
+  #         script: |
+  #           // 1. Retrieve existing bot comments for the PR
+  #           const { data: comments } = await github.rest.issues.listComments({
+  #             owner: context.repo.owner,
+  #             repo: context.repo.repo,
+  #             issue_number: context.issue.number,
+  #           })
+  #           const botComment = comments.find(comment => {
+  #             return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+  #           })
+
+  #           // 2. Prepare format of the comment
+  #           const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+  #           #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+  #           #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+  #           <details>
+  #           <summary>Validation Output</summary>
+
+  #           \`\`\`hcl\n
+  #           ${{ steps.validate.outputs.stdout }}
+  #           \`\`\`
+
+  #           </details>
+
+  #           #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+  #           <details>
+  #           <summary>Show Plan</summary>
+
+  #           \`\`\`hcl\n
+  #           ${{ steps.plan.outputs.tfplanout }}
+  #           \`\`\`
+
+  #           </details>
+
+  #           *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+  #           // 3. If we have a comment, update it, otherwise create a new one
+  #           if (botComment) {
+  #             github.rest.issues.updateComment({
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               comment_id: botComment.id,
+  #               body: output
+  #             })
+  #           } else {
+  #             github.rest.issues.createComment({
+  #               issue_number: context.issue.number,
+  #               owner: context.repo.owner,
+  #               repo: context.repo.repo,
+  #               body: output
+  #             })
+  #           }
